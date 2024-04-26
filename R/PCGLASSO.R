@@ -57,7 +57,7 @@ pcglasso <- function(S, rho, c = NULL, Theta_start = NULL, threshold = 10^(-5), 
   if (length(threshold) != 1 || !is.numeric(threshold) || threshold < 0) {
     stop("Not a valid threshold")
   }
-  if (length(max_iter) != 1 || !is.numeric(max_iter) || identical(max_iter, round(max_iter))) {
+  if (length(max_iter) != 1 || !is.numeric(max_iter) || !identical(max_iter, round(max_iter))) {
     stop("Not a valid number of maximum iterations")
   }
 
