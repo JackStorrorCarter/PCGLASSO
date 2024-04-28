@@ -2,5 +2,5 @@ A package for calculating the PCGLASSO estimate for a Gaussian precision matrix.
 
 The package can be installed to R using
 ```
-devtools::install.github('JackStorrorCarter/PCGLASSO')
+devtools::install_github('JackStorrorCarter/PCGLASSO')
 ```
