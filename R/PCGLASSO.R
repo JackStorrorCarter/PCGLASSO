@@ -24,6 +24,8 @@ pcglasso <- function(S, rho, c = NULL, Theta_start = NULL, threshold = 10^(-5), 
   if (!isSymmetric(S)) {
     stop("S is not a symmetric matrix")
   }
+  S_diags <- sqrt(diag(S))
+  S <- cov2cor(S)
   S_evals <- eigen(S, symmetric = TRUE, only.values = TRUE)$values
   if (min(S_evals) < -1e-08) {
     stop("S is not positive semidefinite")
@@ -77,6 +79,7 @@ pcglasso <- function(S, rho, c = NULL, Theta_start = NULL, threshold = 10^(-5), 
     if (!isTRUE(all.equal(dim(Theta_start), c(p, p)))) {
       stop("Dimensions of S and Theta_start do not match")
     }
+    Theta_start <- diag(S_diags) %*% Theta_start %*% diag(S_diags)
     if (min(eigen(Theta_start, symmetric = TRUE, only.values = TRUE)$values) < 1e-08) {
       stop("Theta_start is not positive definite")
     }
@@ -84,7 +87,7 @@ pcglasso <- function(S, rho, c = NULL, Theta_start = NULL, threshold = 10^(-5), 
     if (min(S_evals) > 1e-08){
       Theta_start <- solve(S)
     } else {
-      Theta_start <- solve(S + diag(1e-08,p))
+      Theta_start <- solve(S + diag(1,p))
     }
   }
 
@@ -138,6 +141,6 @@ pcglasso <- function(S, rho, c = NULL, Theta_start = NULL, threshold = 10^(-5), 
       ind <- TRUE
     }
   }
-  Theta <- diag(xi) %*% Delta %*% diag(xi)
+  Theta <- diag(1/S_diags) %*% diag(xi) %*% Delta %*% diag(xi) %*% diag(1/S_diags)
   Theta
 }
