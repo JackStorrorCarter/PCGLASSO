@@ -25,10 +25,10 @@ pcglasso <- function(S, rho, c = NULL, Theta_start = NULL, threshold = 10^(-5), 
     stop("S is not a symmetric matrix")
   }
   S_evals <- eigen(S, symmetric = TRUE, only.values = TRUE)$values
-  if (min(S_evals) < 0) {
+  if (min(S_evals) < -1e-08) {
     stop("S is not positive semidefinite")
   }
-  k <- length(which(S_evals == 0))
+  k <- length(which(S_evals < 1e-08))
   if (!is.null(c)) {
     if (length(c) != 1 || !is.numeric(c)) {
       stop("Not a valid penalty parameter c")
@@ -77,7 +77,7 @@ pcglasso <- function(S, rho, c = NULL, Theta_start = NULL, threshold = 10^(-5), 
     if (!isTRUE(all.equal(dim(Theta_start), c(p, p)))) {
       stop("Dimensions of S and Theta_start do not match")
     }
-    if (min(eigen(Theta_start, symmetric = TRUE, only.values = TRUE)$values) > 1e-08) {
+    if (min(eigen(Theta_start, symmetric = TRUE, only.values = TRUE)$values) < 1e-08) {
       stop("Theta_start is not positive definite")
     }
   } else {
