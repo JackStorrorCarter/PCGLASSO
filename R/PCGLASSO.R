@@ -107,6 +107,16 @@ pcglasso <- function(S, rho, c = NULL, Theta_start = NULL, threshold = 10^(-5), 
     Delta_old <- Delta
     xi_old <- xi
 
+    gamma_fb <- 0.9 / max(abs(eigen(Delta * S, symmetric = TRUE, only.values = TRUE)$values))
+    fb_param2 <- 4 * c * gamma_fb
+    ind2 <- FALSE
+    while(ind2 == FALSE){
+      xi_old2 <- xi
+      fb_param1 <- gamma_fb * 2 * colSums(S * Delta * xi)
+      xi <- FB(xi = xi, fb_param1, fb_param2)
+      ind2 <- (norm(xi - xi_old2, type = '2') / norm(xi_old2, type = '2') < threshold/10)
+    }
+
     ind1 <- FALSE
     S_aux <- (diag(xi) %*% S %*% diag(xi))[UT]
     while(ind1 == FALSE){
@@ -119,16 +129,6 @@ pcglasso <- function(S, rho, c = NULL, Theta_start = NULL, threshold = 10^(-5), 
       if(ind1){
         ind1 <- min(eigen(Delta, symmetric = TRUE, only.values = TRUE)$values) > 1e-08
       }
-    }
-
-    gamma_fb <- 0.9 / max(abs(eigen(Delta * S, symmetric = TRUE, only.values = TRUE)$values))
-    fb_param2 <- 4 * c * gamma_fb
-    ind2 <- FALSE
-    while(ind2 == FALSE){
-      xi_old2 <- xi
-      fb_param1 <- gamma_fb * 2 * colSums(S * Delta * xi)
-      xi <- FB(xi = xi, fb_param1, fb_param2)
-      ind2 <- (norm(xi - xi_old2, type = '2') / norm(xi_old2, type = '2') < threshold/10)
     }
 
     if (niter == max_iter) {
