@@ -41,7 +41,7 @@ pcglasso <- function(S, rho, c = NULL, Theta_start = NULL, threshold = 10^(-5), 
     if (c <= 0) {
       stop("c must be greater than 0")
     }
-    if (identical(k, integer(0))) {
+    if (identical(k, as.integer(0))) {
       if (c > 1) {
         stop("c must be less than or equal to 1")
       }
@@ -51,7 +51,7 @@ pcglasso <- function(S, rho, c = NULL, Theta_start = NULL, threshold = 10^(-5), 
       }
     }
   } else {
-    if (identical(k, integer(0))){
+    if (identical(k, as.integer(0))){
       c <- 1
     } else{
       c <- (1 - k / p) / 1.3
