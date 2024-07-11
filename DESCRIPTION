@@ -1,7 +1,7 @@
 Package: PCGLASSO
 Type: Package
-Title: PCGLASSO
-Version: 0.0.1
+Title: Partial correlation graphical LASSO
+Version: 0.0.2
 Author: Jack Storror Carter
 Maintainer: Jack Storror Carter <jackcarter23@aol.com>
 Description: Numerical algorithm for calculation of the PCGLASSO estimate for a 
