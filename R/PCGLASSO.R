@@ -24,9 +24,12 @@ pcglasso <- function(S, rho, c = NULL, Theta_start = NULL, threshold = 10^(-5), 
   if (!isSymmetric(S)) {
     stop("S is not a symmetric matrix")
   }
+  p <- dim(S)[1]
   S_diags <- sqrt(diag(S))
   S <- cov2cor(S)
-  S_evals <- eigen(S, symmetric = TRUE, only.values = TRUE)$values
+  S_eigen <- eigen(S, symmetric = TRUE)
+  S_evals <- S_eigen$values
+  S_evecs <- S_eigen$vectors
   if (min(S_evals) < -1e-08) {
     stop("S is not positive semidefinite")
   }
@@ -43,12 +46,16 @@ pcglasso <- function(S, rho, c = NULL, Theta_start = NULL, threshold = 10^(-5), 
         stop("c must be less than or equal to 1")
       }
     } else {
-      if (c > 1 / (k + 1)) {
+      if (c >= 1 - k / p) {
         stop("c is too large - no solution exists")
       }
     }
   } else {
-    c <- 1 / (k + 1)
+    if (identical(k, 0)){
+      c <- 1
+    } else{
+      c <- (1 - k / p) / 1.3
+    }
   }
   if (length(rho) != 1 || !is.numeric(rho)) {
     stop("Not a valid penalty parameter rho")
@@ -63,7 +70,7 @@ pcglasso <- function(S, rho, c = NULL, Theta_start = NULL, threshold = 10^(-5), 
     stop("Not a valid number of maximum iterations")
   }
 
-  p <- dim(S)[1]
+
   c <- 2 * c
 
   if (!is.null(Theta_start)){
@@ -85,9 +92,9 @@ pcglasso <- function(S, rho, c = NULL, Theta_start = NULL, threshold = 10^(-5), 
     }
   } else {
     if (min(S_evals) > 1e-08){
-      Theta_start <- solve(S)
+      Theta_start <- S_evecs %*% diag(1 / (S_evals)) %*% t(S_evecs) #+ diag(1, p)
     } else {
-      Theta_start <- solve(S + diag(1,p))
+      Theta_start <- S_evecs %*% diag(1 / (S_evals + 1 - min(S_evals))) %*% t(S_evecs)
     }
   }
 
@@ -96,8 +103,8 @@ pcglasso <- function(S, rho, c = NULL, Theta_start = NULL, threshold = 10^(-5), 
   Delta_3 <- Delta
   xi <- sqrt(diag(Theta_start))
 
-  F_val <- rep(0, max_iter+1)
-  F_val[1] <- obj_fun(Delta, xi, S, rho, c)
+  #F_val <- rep(0, max_iter+1)
+  #F_val[1] <- obj_fun(Delta, xi, S, rho, c)
   ind <- FALSE
   niter <- 1
   UT <- upper.tri(Delta)
@@ -134,11 +141,13 @@ pcglasso <- function(S, rho, c = NULL, Theta_start = NULL, threshold = 10^(-5), 
     if (niter == max_iter) {
       ind <- TRUE
       warning("Maximum number of iterations reached")
-    }
-    niter <- niter + 1
-    F_val[niter] <- obj_fun(Delta, xi, S, rho, c)
-    if (stopping_rule(Delta, Delta_old, xi, xi_old, F_val[niter], F_val[niter - 1], threshold)) {
-      ind <- TRUE
+    } else{
+      niter <- niter + 1
+      ind <- norm(Delta - Delta_old, type = '2') / norm(Delta_old, type = '2') + norm( xi - xi_old, type = '2') / norm(xi_old, type = '2') < threshold
+      #F_val[niter] <- obj_fun(Delta, xi, S, rho, c)
+      #if (stopping_rule(Delta, Delta_old, xi, xi_old, F_val[niter], F_val[niter - 1], threshold)) {
+      #  ind <- TRUE
+      #}
     }
   }
   Theta <- diag(1/S_diags) %*% diag(xi) %*% Delta %*% diag(xi) %*% diag(1/S_diags)
