@@ -54,7 +54,7 @@ pcglasso <- function(S, rho, c = NULL, Theta_start = NULL, threshold = 10^(-5), 
     if (identical(k, as.integer(0))){
       c <- 1
     } else{
-      c <- (1 - k / p) / 1.3
+      c <- 0.75 * (1 - k / p)
     }
   }
   if (length(rho) != 1 || !is.numeric(rho)) {
