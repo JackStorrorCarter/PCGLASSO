@@ -15,7 +15,7 @@
 DR <- function(Delta_1, Delta_2, Delta_3, S_aux, rho, UT, LT) {
   Delta_3 <- Delta_3 + Delta_1 - Delta_2
   eig <- eigen(Delta_3, symmetric = TRUE)
-  Delta_2 <- eig$vectors %*% diag(0.5 * (eig$values + sqrt(eig$values^2 + 4))) %*% t(eig$vectors)
+  Delta_2 <- eig$vectors %*% ( 0.5 * (eig$values + sqrt(eig$values^2 + 4)) * t(eig$vectors) )
   Delta_1[UT] <- shrink(((2 * Delta_2) - Delta_3)[UT] - S_aux,
                         rho
   )
