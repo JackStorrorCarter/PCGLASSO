@@ -15,7 +15,7 @@
 #' @export
 
 pcglasso <- function(S, rho, c = NULL, Theta_start = NULL, threshold = 10^(-5), max_iter = 10000) {
-  if (!is.matrix(S)) {
+    if (!is.matrix(S)) {
     stop("S is not a matrix")
   }
   if (!is.numeric(S)) {
@@ -47,7 +47,7 @@ pcglasso <- function(S, rho, c = NULL, Theta_start = NULL, threshold = 10^(-5), 
       }
     } else {
       if (c >= 1 - k / p) {
-        stop("c is too large - no solution exists")
+        warning("c is too large - no solution exists")
       }
     }
   } else {
@@ -86,25 +86,24 @@ pcglasso <- function(S, rho, c = NULL, Theta_start = NULL, threshold = 10^(-5), 
     if (!isTRUE(all.equal(dim(Theta_start), c(p, p)))) {
       stop("Dimensions of S and Theta_start do not match")
     }
-    Theta_start <- diag(S_diags) %*% Theta_start %*% diag(S_diags)
-    if (min(eigen(Theta_start, symmetric = TRUE, only.values = TRUE)$values) < 1e-08) {
+    Theta_start <- S_diags * Theta_start * rep(S_diags, each = p)
+    if (RSpectra::eigs_sym(Theta_start, k = 1, which = "SA", opts = list(retvec = FALSE))$values[1] < 1e-08) {
       stop("Theta_start is not positive definite")
     }
   } else {
-    if (min(S_evals) > 1e-08){
-      Theta_start <- S_evecs %*% diag(1 / (S_evals)) %*% t(S_evecs) #+ diag(1, p)
+    if (identical(k, as.integer(0))){
+      Theta_start <- S_evecs %*% ( (1 / (S_evals)) * t(S_evecs) )
     } else {
-      Theta_start <- S_evecs %*% diag(1 / (S_evals + 1 - min(S_evals))) %*% t(S_evecs)
+      Theta_start <- S_evecs %*% ( (1 / (S_evals + 1 - min(S_evals))) * t(S_evecs) )
     }
   }
 
-  Delta <- cov2cor(Theta_start)
+  Theta <- Theta_start
+  Delta <- cov2cor(Theta)
   Delta_2 <- Delta
   Delta_3 <- Delta
-  xi <- sqrt(diag(Theta_start))
+  xi <- sqrt(diag(Theta))
 
-  #F_val <- rep(0, max_iter+1)
-  #F_val[1] <- obj_fun(Delta, xi, S, rho, c)
   ind <- FALSE
   niter <- 1
   UT <- upper.tri(Delta)
