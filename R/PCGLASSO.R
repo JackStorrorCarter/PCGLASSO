@@ -113,27 +113,35 @@ pcglasso <- function(S, rho, c = NULL, Theta_start = NULL, threshold = 10^(-5), 
     Delta_old <- Delta
     xi_old <- xi
 
-    gamma_fb <- 0.9 / max(abs(eigen(Delta * S, symmetric = TRUE, only.values = TRUE)$values))
+    gamma_fb <- 0.9 / RSpectra::eigs_sym(Delta * S, k = 1, which = "LA", opts = list(retvec = FALSE))$values[1]
     fb_param2 <- 4 * c * gamma_fb
     ind2 <- FALSE
+    val <- sum(S * Theta) - c * sum(log(xi))
     while(ind2 == FALSE){
       xi_old2 <- xi
       fb_param1 <- gamma_fb * 2 * colSums(S * Delta * xi)
       xi <- FB(xi = xi, fb_param1, fb_param2)
       ind2 <- (norm(xi - xi_old2, type = '2') / norm(xi_old2, type = '2') < threshold/10)
+      if(ind2){
+        ind2 <- sum(S * (xi * Delta * rep(xi, each=p))) - c * sum(log(xi)) < val + 1e-08
+      }
     }
 
     ind1 <- FALSE
-    S_aux <- (diag(xi) %*% S %*% diag(xi))[UT]
+    S_aux <- xi * S * rep(xi, each=p)
+    val <- -log(det(Delta)) + sum(S_aux * Delta) + rho * (sum(abs(Delta)) - p)
     while(ind1 == FALSE){
       Delta_old2 <- Delta
-      DR_out <- DR(Delta, Delta_2, Delta_3, S_aux, rho, UT, LT)
+      DR_out <- DR(Delta, Delta_2, Delta_3, S_aux[UT], rho, UT, LT)
       Delta <- DR_out$Delta_1
       Delta_2 <- DR_out$Delta_2
       Delta_3 <- DR_out$Delta_3
       ind1 <- (norm(Delta - Delta_old2, type = '2') / norm(Delta_old2, type = '2') < threshold/10)
       if(ind1){
-        ind1 <- min(eigen(Delta, symmetric = TRUE, only.values = TRUE)$values) > 1e-08
+        ind1 <- RSpectra::eigs_sym(Delta, k = 1, which = "SA", opts = list(retvec = FALSE))$values[1] > 1e-08
+      }
+      if(ind1){
+        ind1 <- -log(det(Delta)) + sum(S_aux * Delta) + rho * (sum(abs(Delta)) - p) < val + 1e-08
       }
     }
 
@@ -143,12 +151,8 @@ pcglasso <- function(S, rho, c = NULL, Theta_start = NULL, threshold = 10^(-5), 
     } else{
       niter <- niter + 1
       ind <- norm(Delta - Delta_old, type = '2') / norm(Delta_old, type = '2') + norm( xi - xi_old, type = '2') / norm(xi_old, type = '2') < threshold
-      #F_val[niter] <- obj_fun(Delta, xi, S, rho, c)
-      #if (stopping_rule(Delta, Delta_old, xi, xi_old, F_val[niter], F_val[niter - 1], threshold)) {
-      #  ind <- TRUE
-      #}
     }
   }
-  Theta <- diag(1/S_diags) %*% diag(xi) %*% Delta %*% diag(xi) %*% diag(1/S_diags)
+  Theta <- ((1/S_diags) * xi) * Delta * rep(xi * (1/S_diags), each = p)
   Theta
 }
