@@ -14,8 +14,8 @@
 #' @return Numerical solution Theta to the PCGLASSO optimisation problem.
 #' @export
 
-pcglasso <- function(S, rho, c = NULL, Theta_start = NULL, threshold = 10^(-5), max_iter = 10000) {
-    if (!is.matrix(S)) {
+pcglasso <- function(S, rho, c = NULL, Theta_start = NULL, threshold = 10^(-4), max_iter = 10000) {
+  if (!is.matrix(S)) {
     stop("S is not a matrix")
   }
   if (!is.numeric(S)) {
@@ -99,10 +99,10 @@ pcglasso <- function(S, rho, c = NULL, Theta_start = NULL, threshold = 10^(-5), 
   }
 
   Theta <- Theta_start
-  Delta <- cov2cor(Theta)
+  Delta <- cov2cor(Theta_start)
   Delta_2 <- Delta
   Delta_3 <- Delta
-  xi <- sqrt(diag(Theta))
+  xi <- sqrt(diag(Theta_start))
 
   ind <- FALSE
   niter <- 1
@@ -110,6 +110,7 @@ pcglasso <- function(S, rho, c = NULL, Theta_start = NULL, threshold = 10^(-5), 
   LT <- lower.tri(Delta)
 
   while (ind == FALSE) {
+    Theta_old <- Theta
     Delta_old <- Delta
     xi_old <- xi
 
@@ -117,11 +118,12 @@ pcglasso <- function(S, rho, c = NULL, Theta_start = NULL, threshold = 10^(-5), 
     fb_param2 <- 4 * c * gamma_fb
     ind2 <- FALSE
     val <- sum(S * Theta) - c * sum(log(xi))
+    threshold_FB <- max(10^(-3) * 0.9^(niter - 1), threshold * 0.1)
     while(ind2 == FALSE){
-      xi_old2 <- xi
+      xi_old1 <- xi
       fb_param1 <- gamma_fb * 2 * colSums(S * Delta * xi)
       xi <- FB(xi = xi, fb_param1, fb_param2)
-      ind2 <- (norm(xi - xi_old2, type = '2') / norm(xi_old2, type = '2') < threshold/10)
+      ind2 <- ( sum(abs(xi - xi_old1)) < sum(abs(xi_old1)) * threshold_FB )
       if(ind2){
         ind2 <- sum(S * (xi * Delta * rep(xi, each=p))) - c * sum(log(xi)) < val + 1e-08
       }
@@ -130,13 +132,14 @@ pcglasso <- function(S, rho, c = NULL, Theta_start = NULL, threshold = 10^(-5), 
     ind1 <- FALSE
     S_aux <- xi * S * rep(xi, each=p)
     val <- -log(det(Delta)) + sum(S_aux * Delta) + rho * (sum(abs(Delta)) - p)
+    threshold_DR <- max(10^(-3) * 0.9^(niter - 1), threshold * 0.1)
     while(ind1 == FALSE){
-      Delta_old2 <- Delta
+      Delta_old1 <- Delta
       DR_out <- DR(Delta, Delta_2, Delta_3, S_aux[UT], rho, UT, LT)
       Delta <- DR_out$Delta_1
       Delta_2 <- DR_out$Delta_2
       Delta_3 <- DR_out$Delta_3
-      ind1 <- (norm(Delta - Delta_old2, type = '2') / norm(Delta_old2, type = '2') < threshold/10)
+      ind1 <- ( sum(abs(Delta - Delta_old1)) <= (max(sum(abs(Delta_old1)) - p, 1e-08) * threshold_DR ) )
       if(ind1){
         ind1 <- RSpectra::eigs_sym(Delta, k = 1, which = "SA", opts = list(retvec = FALSE))$values[1] > 1e-08
       }
@@ -150,9 +153,9 @@ pcglasso <- function(S, rho, c = NULL, Theta_start = NULL, threshold = 10^(-5), 
       warning("Maximum number of iterations reached")
     } else{
       niter <- niter + 1
-      ind <- norm(Delta - Delta_old, type = '2') / norm(Delta_old, type = '2') + norm( xi - xi_old, type = '2') / norm(xi_old, type = '2') < threshold
+      Theta <- xi * Delta * rep(xi, each=p)
+      ind <- sum(abs(Delta - Delta_old)) / max(sum(abs(Delta_old)) - p, 1e-08) + sum(abs(xi - xi_old)) / sum(abs(xi_old)) < threshold
     }
   }
-  Theta <- ((1/S_diags) * xi) * Delta * rep(xi * (1/S_diags), each = p)
-  Theta
+  (1/S_diags) * Theta * rep(1/S_diags, each = p)
 }
