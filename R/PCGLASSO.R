@@ -4,10 +4,8 @@
 #'
 #' @param S Sample covariance matrix.
 #' @param rho Penalty parameter.
-#' @param c Diagonal parameter. Default is the largest possible value for which
-#'   the solution exists.
-#' @param Theta_start Starting value of Theta. Default is the inverse of S
-#'   (generalised inverse if S is not positive definite).
+#' @param c Diagonal parameter. Default is 1 if S is positive definite or 0.9 times the upper bound for c if S is positive semidefinite.
+#' @param Theta_start Starting value of Theta. Default is the inverse of S if S is positive definite. If S is only positive semidefinite then the default of Theta is formed by adding 1 to the eigenvalues of S and taking the inverse. 
 #' @param threshold Threshold for stopping rule of algorithm.
 #' @param max_iter Maximum number of iterations.
 #'
@@ -41,13 +39,9 @@ pcglasso <- function(S, rho, c = NULL, Theta_start = NULL, threshold = 10^(-4), 
     if (c <= 0) {
       stop("c must be greater than 0")
     }
-    if (identical(k, as.integer(0))) {
-      if (c > 1) {
-        stop("c must be less than or equal to 1")
-      }
-    } else {
+    if (k > 0) {
       if (c >= 1 - k / p) {
-        warning("c is too large - no solution exists")
+        warning("c is too large - solution may not exist")
       }
     }
   } else {
